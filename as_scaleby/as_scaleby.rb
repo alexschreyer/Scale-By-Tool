@@ -47,13 +47,12 @@ module AS_Extensions
         if !all_objects.empty?
         
             # Get all the parameters from input dialog
-            prompts = [ "MAX Scale Variation RED (x, 0 = none) " , 
-                        "MAX Scale Variation GREEN (y, 0 = none) " , 
-                        "MAX Scale Variation BLUE (z, 0 = none) " ,
-                        "MAX Rotation Variation (degrees) " ,
-                        "Image Orientation (local) " ]
-            defaults = [ "0" , "0" , "1" , "0" , "RED-GREEN (x-y)" ]
-            lists = [ "" , "" , "" , "" , "RED-GREEN (x-y)|RED-BLUE (x-z)|GREEN-BLUE (y-z)" ]
+            prompts = [ "Transformation to apply " ,
+                        "Image Orientation (local) " ,
+                        "Multiplier (scale|distance|angle) " ]
+            defaults = [ "Uniform Scaling" , "RED-GREEN (x-y)" , "2" ]
+            lists = [ "Uniform Scaling|Scaling in RED|Scaling in GREEN|Scaling in BLUE|Rotation about RED|Rotation about GREEN|Rotation about BLUE|Motion in RED|Motion in GREEN|Motion in BLUE" , 
+                      "RED-GREEN (x-y)|RED-BLUE (x-z)|GREEN-BLUE (y-z)" , "" ]
             defaults = Sketchup.read_default( @exttitle , toolname , defaults )
             
             res = UI.inputbox( prompts , defaults , lists , toolname )
@@ -65,24 +64,21 @@ module AS_Extensions
             
             begin
             
-                x_var = res[0].to_f
-                y_var = res[1].to_f
-                z_var = res[2].to_f
-                rot_var = res[3].to_i
-
+                s_fac = res[2].to_f
+                
                 # Ask for an image file
                 f = UI.openpanel 'Select an image file', '', 'Image Files|*.jpg;*.png;||'
                 return if f == nil
 
                 # Now load the image
                 ir = Sketchup::ImageRep.new
-                ir.load_file( f )
+                ir.load_file( f )                
 
                 # Create temporary group from selection to get dimensions
                 gr = ent.add_group( all_objects )
                 gr_x_dim = ( gr.definition.bounds.max - gr.definition.bounds.min ).x
                 gr_y_dim = ( gr.definition.bounds.max - gr.definition.bounds.min ).y
-                gr_z_dim = ( gr.definition.bounds.max - gr.definition.bounds.min ).z
+                gr_z_dim = ( gr.definition.bounds.max - gr.definition.bounds.min ).z 
 
                 # Work with entities in group
                 gr.entities.each_with_index { |e,i|
@@ -95,24 +91,20 @@ module AS_Extensions
                         bas = e.bounds.center
                     end
                     
-                    # Scale based on orientation
-                    if res[4] == "RED-BLUE (x-z)"  # Front orientation
+                    # Scale based on image orientation
+                    if res[1] == "RED-BLUE (x-z)"  # Front orientation
                         
                         x = cen.x.to_f / gr_x_dim
                         z = cen.z.to_f / gr_z_dim
 
                         scale = self.grey( ir.color_at_uv( x , z , true ) )     
-                        
-                        t_rot = Geom::Transformation.rotation bas , mod.axes.yaxis , ( scale * rot_var ).degrees
                     
-                    elsif res[4] == "GREEN-BLUE (y-z)"  # Side orientation
+                    elsif res[1] == "GREEN-BLUE (y-z)"  # Side orientation
                         
                         y = cen.y.to_f / gr_y_dim
                         z = cen.z.to_f / gr_z_dim
 
                         scale = self.grey( ir.color_at_uv( y , z , true ) )      
-                        
-                        t_rot = Geom::Transformation.rotation bas , mod.axes.xaxis , ( scale * rot_var ).degrees
                     
                     else  # Flat on the ground
 
@@ -120,14 +112,55 @@ module AS_Extensions
                         y = cen.y.to_f / gr_y_dim
 
                         scale = self.grey( ir.color_at_uv( x , y , true ) )     
+                    
+                    end       
+                    
+                    # Get transformation                             
+                    if res[0] == "Scaling in RED"
+                    
+                        t = Geom::Transformation.scaling bas , scale * s_fac , 1 , 1
+                    
+                    elsif res[0] == "Scaling in GREEN"
+                    
+                        t = Geom::Transformation.scaling bas , 1 , scale * s_fac , 1
+                    
+                    elsif res[0] == "Scaling in BLUE"
+                    
+                        t = Geom::Transformation.scaling bas , 1 , 1 , scale * s_fac                    
+                    
+                    elsif res[0] == "Rotation about RED"
+                    
+                        t = Geom::Transformation.rotation bas , [ 1 , 0 , 0 ] , ( scale * s_fac ).degrees
+                    
+                    elsif res[0] == "Rotation about GREEN"
+                    
+                        t = Geom::Transformation.rotation bas , [ 0 , 1 , 0 ] , ( scale * s_fac ).degrees
+                    
+                    elsif res[0] == "Rotation about BLUE"
+                    
+                        t = Geom::Transformation.rotation bas , [ 0 , 0 , 1 ] , ( scale * s_fac ).degrees
                         
-                        t_rot = Geom::Transformation.rotation bas , mod.axes.zaxis , ( scale * rot_var ).degrees
+                    elsif res[0] == "Motion in RED"
+                    
+                        t = Geom::Transformation.translation [ scale * s_fac , 0 , 0 ]
+                        
+                    elsif res[0] == "Motion in GREEN"
+                    
+                        t = Geom::Transformation.translation [ 0 , scale * s_fac , 0 ]
+                        
+                    elsif res[0] == "Motion in BLUE"
+                    
+                        t = Geom::Transformation.translation [ 0 , 0 , scale * s_fac ]                        
+                    
+                    else
+                    
+                        # Uniform scaling as default
+                        t = Geom::Transformation.scaling bas , scale * s_fac
                     
                     end
 
-                    # Apply the scaling
-                    t_sca = Geom::Transformation.scaling bas , 1 + x_var * (scale - 0.5) , 1 + y_var * (scale - 0.5) , 1 + z_var * (scale - 0.5)
-                    e.transform! ( t_rot * t_sca )
+                    # Apply the transformation
+                    e.transform! ( t )
                     
                     # Life is always better with some feedback while SketchUp works
                     Sketchup.status_text = toolname + " | Done with object #{(i+1).to_s}"
@@ -147,9 +180,9 @@ module AS_Extensions
             
         else  # Can't start tool
         
-            UI.messagebox "Select several objects (groups or component instances) first. You will be asked to select the image second."
+            UI.messagebox "Select several objects (groups or component instances) first."
         
-        end            
+        end               
     
     end  # scale_by_image
     
@@ -258,7 +291,7 @@ module AS_Extensions
             
         else  # Can't start tool
         
-            UI.messagebox "Select several ungrouped faces first. You will be asked to select the image second."
+            UI.messagebox "Select several faces first. You will be asked to select the image second."
         
         end            
     
@@ -284,9 +317,9 @@ module AS_Extensions
         if !all_edges.empty?
         
             # Get all the parameters from input dialog
-            prompts = [ "MAX Variation RED (x distance) " , 
-                        "MAX Variation GREEN (y distance) " , 
-                        "MAX Variation BLUE (z distance) " ,
+            prompts = [ "MAX Motion in RED (x distance) " , 
+                        "MAX Motion in GREEN (y distance) " , 
+                        "MAX Motion in BLUE (z distance) " ,
                         "Image Orientation (local) " ]
             defaults = [ "0" , "0" , "1'" , "RED-GREEN (x-y)" ]
             lists = [ "" , "" , "" , "RED-GREEN (x-y)|RED-BLUE (x-z)|GREEN-BLUE (y-z)" ]
@@ -313,18 +346,19 @@ module AS_Extensions
                 # Now load the image
                 ir = Sketchup::ImageRep.new
                 ir.load_file( f )
-                
-                # Get all the unique vertices
-                vertices = []
-                all_edges.each { |e| vertices << e.vertices }
-                vertices.flatten!
-                vertices.uniq!
-                
+             
                 # Create temporary group from selection to get dimensions
-                gr = ent.add_group( all_edges + all_faces )
+                gr = ent.add_group( all_edges + all_faces ) 
                 gr_x_dim = ( gr.definition.bounds.max - gr.definition.bounds.min ).x
                 gr_y_dim = ( gr.definition.bounds.max - gr.definition.bounds.min ).y
-                gr_z_dim = ( gr.definition.bounds.max - gr.definition.bounds.min ).z                                
+                gr_z_dim = ( gr.definition.bounds.max - gr.definition.bounds.min ).z    
+           
+                # Get all the unique vertices                
+                gr_edges = gr.entities.grep( Sketchup::Edge )
+                vertices = []
+                gr_edges.each { |e| vertices << e.vertices }
+                vertices.flatten!
+                vertices.uniq!
 
                 vertices.each_with_index { |v,i| 
                 
@@ -355,8 +389,8 @@ module AS_Extensions
                     
                     end
 
-                    t = Geom::Transformation.new [ ( scale - 0.5 ) * max_x , ( scale - 0.5 ) * max_y , ( scale - 0.5 ) * max_z ]
-                    ent.transform_entities( t , v )
+                    t = Geom::Transformation.new [  scale * max_x , scale * max_y , scale * max_z ]
+                    gr.entities.transform_entities( t , v )
                     
                     # Life is always better with some feedback while SketchUp works
                     Sketchup.status_text = toolname + " | Done with vertex #{(i+1).to_s}"
@@ -476,15 +510,15 @@ module AS_Extensions
                     
                     elsif res[0] == "Rotation about RED"
                     
-                        t = Geom::Transformation.rotation bas , mod.axes.xaxis , ( scale * 360 ).degrees
+                        t = Geom::Transformation.rotation bas , [ 1 , 0 , 0 ] , ( scale ).degrees
                     
                     elsif res[0] == "Rotation about GREEN"
                     
-                        t = Geom::Transformation.rotation bas , mod.axes.yaxis , ( scale * 360 ).degrees
+                        t = Geom::Transformation.rotation bas , [ 0 , 1 , 0 ] , ( scale ).degrees
                     
                     elsif res[0] == "Rotation about BLUE"
                     
-                        t = Geom::Transformation.rotation bas , mod.axes.zaxis , ( scale * 360 ).degrees
+                        t = Geom::Transformation.rotation bas , [ 0 , 0 , 1 ] , ( scale ).degrees
                         
                     elsif res[0] == "Motion in RED"
                     
@@ -633,15 +667,15 @@ module AS_Extensions
                     
                     elsif res[0] == "Rotation about RED"
                     
-                        t = Geom::Transformation.rotation bas , mod.axes.xaxis , ( scale * 360 ).degrees
+                        t = Geom::Transformation.rotation bas , [ 1 , 0 , 0 ] , ( scale ).degrees
                     
                     elsif res[0] == "Rotation about GREEN"
                     
-                        t = Geom::Transformation.rotation bas , mod.axes.yaxis , ( scale * 360 ).degrees
+                        t = Geom::Transformation.rotation bas , [ 0 , 1 , 0 ] , ( scale ).degrees
                     
                     elsif res[0] == "Rotation about BLUE"
                     
-                        t = Geom::Transformation.rotation bas , mod.axes.zaxis , ( scale * 360 ).degrees
+                        t = Geom::Transformation.rotation bas , [ 0 , 0 , 1 ] , ( scale ).degrees
                         
                     elsif res[0] == "Motion in RED"
                     
@@ -716,7 +750,7 @@ module AS_Extensions
     def self.show_help
     # Browse news using webdialog
     
-      show_url( @exttitle , "https://alexschreyer.net/projects/?tag=sketchup+plugins-extensions" ) 
+      show_url( @exttitle , "https://alexschreyer.net/projects/scale-by-image-equation-tools-extension-for-sketchup/" ) 
 
     end # show_help
 
@@ -731,7 +765,7 @@ module AS_Extensions
         tools << [ "Transform Objects by Power Equation" , "scale_by_math_power" , "Select several objects (groups or component instances) first." ]
         tools << [ "Transform Objects by Sine/Cosine Equation" , "scale_by_math_sine" , "Select several objects (groups or component instances) first." ]
         tools << [ "" , "" , "" ]
-        tools << [ "Push/Pull Faces by Image" , "pushpull_by_image" , "Select several ungrouped faces first. You will be asked to select the image second." ]
+        tools << [ "Push/Pull Faces by Image" , "pushpull_by_image" , "Select several faces first. You will be asked to select the image second." ]
         tools << [ "Move Vertices by Image" , "vertices_by_image" , "Select several edges (and faces if connected) first (their vertices will be moved). You will be asked to select the image second." ]
 
         # Add to the SketchUp Extensions menu and create a toolbar
