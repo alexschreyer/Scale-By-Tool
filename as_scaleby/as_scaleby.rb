@@ -33,6 +33,12 @@ module AS_Extensions
     def self.scale_by_image
     # Scale objects based on image grayscale
     
+        # Give warning where ImageRep isn't available
+        if Sketchup.version.to_i < 18
+            UI.messagebox "This tool works only with SketchUp 2018 and newer."
+            return
+        end    
+    
         mod = Sketchup.active_model
         ent = mod.entities
         sel = mod.selection
@@ -193,6 +199,12 @@ module AS_Extensions
     def self.pushpull_by_image
     # Push/pull faces based on image grayscale
     
+        # Give warning where ImageRep isn't available
+        if Sketchup.version.to_i < 18
+            UI.messagebox "This tool works only with SketchUp 2018 and newer."
+            return
+        end    
+    
         mod = Sketchup.active_model
         ent = mod.entities
         sel = mod.selection
@@ -303,6 +315,12 @@ module AS_Extensions
     
     def self.vertices_by_image
     # Move vertices based on image grayscale
+    
+        # Give warning where ImageRep isn't available
+        if Sketchup.version.to_i < 18
+            UI.messagebox "This tool works only with SketchUp 2018 and newer."
+            return
+        end    
     
         mod = Sketchup.active_model
         ent = mod.entities

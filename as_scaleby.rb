@@ -28,6 +28,9 @@ Usage :         Tools > Scale By Tools
 
 History:        1.0 (7/2/2020):
                 - Initial release
+                1.1 (TBD):
+                - Added warning for pre-2018 users
+                - Added missing toolbar icons (mac, old)
                 
 ToDo:           - Could add phase shift for sine and remove cosine
 
