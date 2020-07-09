@@ -55,7 +55,7 @@ module AS_Extensions
             # Get all the parameters from input dialog
             prompts = [ "Transformation to apply " ,
                         "Image Orientation (local) " ,
-                        "Multiplier (scale|distance|angle) " ]
+                        "Multiplier (scale|angle|distance) " ]
             defaults = [ "Uniform Scaling" , "RED-GREEN (x-y)" , "2" ]
             lists = [ "Uniform Scaling|Scaling in RED|Scaling in GREEN|Scaling in BLUE|Rotation about RED|Rotation about GREEN|Rotation about BLUE|Motion in RED|Motion in GREEN|Motion in BLUE" , 
                       "RED-GREEN (x-y)|RED-BLUE (x-z)|GREEN-BLUE (y-z)" , "" ]
@@ -70,7 +70,11 @@ module AS_Extensions
             
             begin
             
-                s_fac = res[2].to_f
+                if res[0].include? "Motion"
+                    s_fac = res[2].to_l 
+                else
+                    s_fac = res[2].to_f
+                end
                 
                 # Ask for an image file
                 f = UI.openpanel 'Select an image file', '', 'Image Files|*.jpg;*.png;||'
@@ -191,6 +195,174 @@ module AS_Extensions
         end               
     
     end  # scale_by_image
+    
+    
+    # ==================
+    
+    
+    def self.scale_by_attractor
+    # Scale objects based on proximity to attractors
+    
+        mod = Sketchup.active_model
+        ent = mod.entities
+        sel = mod.selection
+        
+        toolname = "Transform Objects by Attractors"      
+        
+        # Get all objects from selection
+        all_objects = []
+        all_objects.push( *sel.grep( Sketchup::ComponentInstance ) )
+        all_objects.push( *sel.grep( Sketchup::Group ) )
+        
+        # Get attractors from selection
+        att = all_objects.grep( Sketchup::ComponentInstance ) { |c| c if c.definition.name == "A" }
+        att.compact!
+        
+        all_objects = all_objects - att
+        
+        if !( all_objects.empty? or att.empty? )
+        
+            # Get all the parameters from input dialog
+            prompts = [ "Transformation to apply " ,
+                        "Attraction Scaling (distance) " ,
+                        "Attraction Falloff " ,
+                        "Attraction Type " ,
+                        "Multiplier (scale|angle|distance) " ]
+            defaults = [ "Uniform Scaling" , "10'" , "Linear" , "Decrease" , "2" ]
+            lists = [ "Uniform Scaling|Scaling in RED|Scaling in GREEN|Scaling in BLUE|Rotation about RED|Rotation about GREEN|Rotation about BLUE|Motion in RED|Motion in GREEN|Motion in BLUE" , 
+                      "" , "Root|Linear|Square" , "Decrease|Increase" , "" ]
+            defaults = Sketchup.read_default( @exttitle , toolname , defaults )
+            
+            res = UI.inputbox( prompts , defaults , lists , toolname )
+            return if !res
+            
+            Sketchup.write_default( @exttitle , toolname , res )
+            
+            mod.start_operation toolname
+            
+            begin
+            
+                # Get parameters
+                att_val = res[1].to_l 
+                if res[2] == "Root"
+                    power = 0.5
+                elsif res[2] == "Square"
+                    power = 2
+                else
+                    power = 1
+                end  
+                if res[0].include? "Motion"
+                    s_fac = res[4].to_l 
+                else
+                    s_fac = res[4].to_f
+                end
+
+                # Create temporary group from selection to get dimensions
+                gr = ent.add_group( all_objects + att )
+                gr_x_dim = ( gr.definition.bounds.max - gr.definition.bounds.min ).x
+                gr_y_dim = ( gr.definition.bounds.max - gr.definition.bounds.min ).y
+                gr_z_dim = ( gr.definition.bounds.max - gr.definition.bounds.min ).z 
+
+                # Work with entities in group
+                gr.entities.each_with_index { |e,i|
+                
+                    if !att.include?(e)
+                
+                        # Get base of object
+                        cen = e.bounds.center
+                        if e.is_a? Sketchup::ComponentInstance
+                            bas = e.transformation.origin
+                        else
+                            bas = e.bounds.center
+                        end
+                        
+                        # Find the smallest attractor distance, start with large number
+                        dist = 1000000
+                        
+                        att.each { |a|
+                        
+                            a_dist = a.transformation.origin.distance cen
+                            dist = a_dist if a_dist < dist
+                        
+                        }
+                        
+                        scale = ( dist**power / att_val**power ).to_f
+                        
+                        # Adjust up/down scaling direction                        
+                        scale = 1 / scale if res[3] == "Increase"
+
+                        # Get transformation                             
+                        if res[0] == "Scaling in RED"
+
+                            t = Geom::Transformation.scaling bas , scale * s_fac , 1 , 1
+
+                        elsif res[0] == "Scaling in GREEN"
+
+                            t = Geom::Transformation.scaling bas , 1 , scale * s_fac , 1
+
+                        elsif res[0] == "Scaling in BLUE"
+
+                            t = Geom::Transformation.scaling bas , 1 , 1 , scale * s_fac                    
+
+                        elsif res[0] == "Rotation about RED"
+
+                            t = Geom::Transformation.rotation bas , [ 1 , 0 , 0 ] , ( scale * s_fac ).degrees
+
+                        elsif res[0] == "Rotation about GREEN"
+
+                            t = Geom::Transformation.rotation bas , [ 0 , 1 , 0 ] , ( scale * s_fac ).degrees
+
+                        elsif res[0] == "Rotation about BLUE"
+
+                            t = Geom::Transformation.rotation bas , [ 0 , 0 , 1 ] , ( scale * s_fac ).degrees
+
+                        elsif res[0] == "Motion in RED"
+
+                            t = Geom::Transformation.translation [ scale * s_fac , 0 , 0 ]
+
+                        elsif res[0] == "Motion in GREEN"
+
+                            t = Geom::Transformation.translation [ 0 , scale * s_fac , 0 ]
+
+                        elsif res[0] == "Motion in BLUE"
+
+                            t = Geom::Transformation.translation [ 0 , 0 , scale * s_fac ]                        
+
+                        else
+
+                            # Uniform scaling as default
+                            t = Geom::Transformation.scaling bas , scale * s_fac
+
+                        end
+
+                        # Apply the transformation
+                        e.transform! ( t )
+
+                        # Life is always better with some feedback while SketchUp works
+                        Sketchup.status_text = toolname + " | Done with object #{(i+1).to_s}"
+                        
+                    end
+
+                }
+
+                # Explode group once we are done
+                gr.explode            
+            
+            rescue Exception => e    
+            
+                UI.messagebox("Couldn't do it! Error: #{e}")
+                
+            end
+            
+            mod.commit_operation
+            
+        else  # Can't start tool
+        
+            UI.messagebox "Select several objects (groups or component instances) and one or more components named 'A' first."
+        
+        end               
+    
+    end  # scale_by_attractor    
     
     
     # ==================
@@ -780,6 +952,7 @@ module AS_Extensions
 
         tools = []
         tools << [ "Transform Objects by Image" , "scale_by_image" , "Select several objects (groups or component instances) first. You will be asked to select the image second." ]
+        tools << [ "Transform Objects by Attractors" , "scale_by_attractor" , "Select several objects (groups or component instances) and one or more components named 'A' first." ]      
         tools << [ "Transform Objects by Power Equation" , "scale_by_math_power" , "Select several objects (groups or component instances) first." ]
         tools << [ "Transform Objects by Sine/Cosine Equation" , "scale_by_math_sine" , "Select several objects (groups or component instances) first." ]
         tools << [ "" , "" , "" ]

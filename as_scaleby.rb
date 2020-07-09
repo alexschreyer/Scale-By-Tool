@@ -15,11 +15,11 @@ Website:        https://alexschreyer.net/projects/scale-by-image-equation-tools-
 
 Name :          Scale By Tools
 
-Version:        1.1
+Version:        1.1.1
 
-Date :          7/7/2020
+Date :          7/9/2020
 
-Description :   A set of tools to scale/move/rotate several objects/faces/vertices based on an image or a mathematical formula (power or sine/cosine).
+Description :   A set of tools to scale/move/rotate several objects/faces/vertices based on an image, attractors, or a mathematical formula (power or sine/cosine).
                 
                 This extension combines several of my scripts from my book and sketchupfordesign.com.
 
@@ -28,9 +28,11 @@ Usage :         Tools > Scale By Tools
 
 History:        1.0 (7/2/2020):
                 - Initial release
-                1.1 (7/7/2020):
+                1.1.1 (7/9/2020):
                 - Added warning for pre-2018 users
                 - Added missing toolbar icons (mac, old win)
+                - Distance parameter now converts as length
+                - New function: Scale by attractors
                 
 ToDo:           - Could add phase shift for sine and remove cosine
 
@@ -51,7 +53,7 @@ module AS_Extensions
 
   module AS_ScaleBy
   
-    @extversion           = "1.1"
+    @extversion           = "1.1.1"
     @exttitle             = "Scale By Tools"
     @extname              = "as_scaleby"
     
