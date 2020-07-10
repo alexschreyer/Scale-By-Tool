@@ -53,8 +53,8 @@ module AS_Extensions
         if !all_objects.empty?
         
             # Get all the parameters from input dialog
-            prompts = [ "Transformation to apply " ,
-                        "Image Orientation (local) " ,
+            prompts = [ "Transformation to apply (object coords) " ,
+                        "Image Orientation (local coords) " ,
                         "Multiplier (scale|angle|distance) " ]
             defaults = [ "Uniform Scaling" , "RED-GREEN (x-y)" , "2" ]
             lists = [ "Uniform Scaling|Scaling in RED|Scaling in GREEN|Scaling in BLUE|Rotation about RED|Rotation about GREEN|Rotation about BLUE|Motion in RED|Motion in GREEN|Motion in BLUE" , 
@@ -93,12 +93,11 @@ module AS_Extensions
                 # Work with entities in group
                 gr.entities.each_with_index { |e,i|
                 
-                    # Get base of object
-                    cen = e.bounds.center
+                    # Get center of object
                     if e.is_a? Sketchup::ComponentInstance
-                        bas = e.transformation.origin
+                        cen = e.transformation.origin
                     else
-                        bas = e.bounds.center
+                        cen = e.bounds.center
                     end
                     
                     # Scale based on image orientation
@@ -127,50 +126,50 @@ module AS_Extensions
                     
                     # Get transformation                             
                     if res[0] == "Scaling in RED"
-                    
-                        t = Geom::Transformation.scaling bas , scale * s_fac , 1 , 1
-                    
+
+                        t = Geom::Transformation.scaling scale * s_fac , 1 , 1
+
                     elsif res[0] == "Scaling in GREEN"
-                    
-                        t = Geom::Transformation.scaling bas , 1 , scale * s_fac , 1
-                    
+
+                        t = Geom::Transformation.scaling 1 , scale * s_fac , 1
+
                     elsif res[0] == "Scaling in BLUE"
-                    
-                        t = Geom::Transformation.scaling bas , 1 , 1 , scale * s_fac                    
-                    
+
+                        t = Geom::Transformation.scaling 1 , 1 , scale * s_fac                    
+
                     elsif res[0] == "Rotation about RED"
-                    
-                        t = Geom::Transformation.rotation bas , [ 1 , 0 , 0 ] , ( scale * s_fac ).degrees
-                    
+
+                        t = Geom::Transformation.rotation [ 0 , 0 , 0 ] , [ 1 , 0 , 0 ] , ( scale * s_fac ).degrees
+
                     elsif res[0] == "Rotation about GREEN"
-                    
-                        t = Geom::Transformation.rotation bas , [ 0 , 1 , 0 ] , ( scale * s_fac ).degrees
-                    
+
+                        t = Geom::Transformation.rotation [ 0 , 0 , 0 ] , [ 0 , 1 , 0 ] , ( scale * s_fac ).degrees
+
                     elsif res[0] == "Rotation about BLUE"
-                    
-                        t = Geom::Transformation.rotation bas , [ 0 , 0 , 1 ] , ( scale * s_fac ).degrees
-                        
+
+                        t = Geom::Transformation.rotation [ 0 , 0 , 0 ] , [ 0 , 0 , 1 ] , ( scale * s_fac ).degrees
+
                     elsif res[0] == "Motion in RED"
-                    
+
                         t = Geom::Transformation.translation [ scale * s_fac , 0 , 0 ]
-                        
+
                     elsif res[0] == "Motion in GREEN"
-                    
+
                         t = Geom::Transformation.translation [ 0 , scale * s_fac , 0 ]
-                        
+
                     elsif res[0] == "Motion in BLUE"
-                    
+
                         t = Geom::Transformation.translation [ 0 , 0 , scale * s_fac ]                        
-                    
+
                     else
-                    
+
                         # Uniform scaling as default
-                        t = Geom::Transformation.scaling bas , scale * s_fac
-                    
+                        t = Geom::Transformation.scaling scale * s_fac
+
                     end
 
                     # Apply the transformation
-                    e.transform! ( t )
+                    e.transformation *= t
                     
                     # Life is always better with some feedback while SketchUp works
                     Sketchup.status_text = toolname + " | Done with object #{(i+1).to_s}"
@@ -223,7 +222,7 @@ module AS_Extensions
         if !( all_objects.empty? or att.empty? )
         
             # Get all the parameters from input dialog
-            prompts = [ "Transformation to apply " ,
+            prompts = [ "Transformation to apply (object coords) " ,
                         "Attraction Scaling (distance) " ,
                         "Attraction Falloff " ,
                         "Attraction Type " ,
@@ -268,12 +267,11 @@ module AS_Extensions
                 
                     if !att.include?(e)
                 
-                        # Get base of object
-                        cen = e.bounds.center
+                        # Get center of object
                         if e.is_a? Sketchup::ComponentInstance
-                            bas = e.transformation.origin
+                            cen = e.transformation.origin
                         else
-                            bas = e.bounds.center
+                            cen = e.bounds.center
                         end
                         
                         # Find the smallest attractor distance, start with large number
@@ -294,27 +292,27 @@ module AS_Extensions
                         # Get transformation                             
                         if res[0] == "Scaling in RED"
 
-                            t = Geom::Transformation.scaling bas , scale * s_fac , 1 , 1
+                            t = Geom::Transformation.scaling scale * s_fac , 1 , 1
 
                         elsif res[0] == "Scaling in GREEN"
 
-                            t = Geom::Transformation.scaling bas , 1 , scale * s_fac , 1
+                            t = Geom::Transformation.scaling 1 , scale * s_fac , 1
 
                         elsif res[0] == "Scaling in BLUE"
 
-                            t = Geom::Transformation.scaling bas , 1 , 1 , scale * s_fac                    
+                            t = Geom::Transformation.scaling 1 , 1 , scale * s_fac                    
 
                         elsif res[0] == "Rotation about RED"
 
-                            t = Geom::Transformation.rotation bas , [ 1 , 0 , 0 ] , ( scale * s_fac ).degrees
+                            t = Geom::Transformation.rotation [ 0 , 0 , 0 ] , [ 1 , 0 , 0 ] , ( scale * s_fac ).degrees
 
                         elsif res[0] == "Rotation about GREEN"
 
-                            t = Geom::Transformation.rotation bas , [ 0 , 1 , 0 ] , ( scale * s_fac ).degrees
+                            t = Geom::Transformation.rotation [ 0 , 0 , 0 ] , [ 0 , 1 , 0 ] , ( scale * s_fac ).degrees
 
                         elsif res[0] == "Rotation about BLUE"
 
-                            t = Geom::Transformation.rotation bas , [ 0 , 0 , 1 ] , ( scale * s_fac ).degrees
+                            t = Geom::Transformation.rotation [ 0 , 0 , 0 ] , [ 0 , 0 , 1 ] , ( scale * s_fac ).degrees
 
                         elsif res[0] == "Motion in RED"
 
@@ -331,12 +329,12 @@ module AS_Extensions
                         else
 
                             # Uniform scaling as default
-                            t = Geom::Transformation.scaling bas , scale * s_fac
+                            t = Geom::Transformation.scaling scale * s_fac
 
                         end
 
                         # Apply the transformation
-                        e.transform! ( t )
+                        e.transformation *= t
 
                         # Life is always better with some feedback while SketchUp works
                         Sketchup.status_text = toolname + " | Done with object #{(i+1).to_s}"
@@ -392,7 +390,7 @@ module AS_Extensions
             prompts = [ "MIN Extrusion (distance) " , 
                         "MAX Extrusion (distance) " , 
                         "Create New Faces " ,
-                        "Image Orientation (local) " ]
+                        "Image Orientation (local coords) " ]
             defaults = [ "0" , "1'" , "Yes" , "RED-GREEN (x-y)" ]
             lists = [ "" , "" , "Yes|No" , "RED-GREEN (x-y)|RED-BLUE (x-z)|GREEN-BLUE (y-z)" ]
             defaults = Sketchup.read_default( @exttitle , toolname , defaults )
@@ -510,7 +508,7 @@ module AS_Extensions
             prompts = [ "MAX Motion in RED (x distance) " , 
                         "MAX Motion in GREEN (y distance) " , 
                         "MAX Motion in BLUE (z distance) " ,
-                        "Image Orientation (local) " ]
+                        "Image Orientation (all in local coords) " ]
             defaults = [ "0" , "0" , "1'" , "RED-GREEN (x-y)" ]
             lists = [ "" , "" , "" , "RED-GREEN (x-y)|RED-BLUE (x-z)|GREEN-BLUE (y-z)" ]
             defaults = Sketchup.read_default( @exttitle , toolname , defaults )
@@ -627,7 +625,7 @@ module AS_Extensions
         if !all_objects.empty?
         
             # Get all the parameters from input dialog
-            prompts = [ "Transformation to apply " ,
+            prompts = [ "Transformation to apply (object coords) " ,
                         "Multiplier in RED (x) (A in f = A(Bx)^C+D) " , 
                         "Power Factor in RED (x) (B in f = A(Bx)^C+D) " ,
                         "Power in RED (x) (C in f = A(Bx)^C+D) " ,
@@ -637,7 +635,7 @@ module AS_Extensions
                         "Multiplier in BLUE (z) (A in f = A(Bz)^C+D) " , 
                         "Power Factor in BLUE (z) (B in f = A(Bz)^C+D) " ,
                         "Power in BLUE (z) (C in f = A(Bz)^C+D) " ,
-                        "Offset (D) " ]
+                        "Offset (D) (all in local coords) " ]
             defaults = [ "Uniform Scaling" , "1" , "2" , "2" , "1" , "2" , "2" , "0" , "0" , "0" , "0" ]
             lists = [ "Uniform Scaling|Scaling in RED|Scaling in GREEN|Scaling in BLUE|Rotation about RED|Rotation about GREEN|Rotation about BLUE|Motion in RED|Motion in GREEN|Motion in BLUE" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" ]
             defaults = Sketchup.read_default( @exttitle , toolname , defaults )
@@ -672,11 +670,10 @@ module AS_Extensions
                 gr.entities.each_with_index { |e,i|
                 
                     # Get base of object
-                    cen = e.bounds.center
                     if e.is_a? Sketchup::ComponentInstance
-                        bas = e.transformation.origin
+                        cen = e.transformation.origin
                     else
-                        bas = e.bounds.center
+                        cen = e.bounds.center
                     end
                     
                     # Get combined scale
@@ -685,52 +682,53 @@ module AS_Extensions
                     scale += y_fac * ( y_pfa * ( cen.y / gr_y_dim - 0.5)) ** y_pow  if gr_y_dim.abs > 0
                     scale += z_fac * ( z_pfa * ( cen.z / gr_z_dim - 0.5)) ** z_pow  if gr_z_dim.abs > 0
                     scale += off
-                             
+                    
+                    # Get transformation                             
                     if res[0] == "Scaling in RED"
-                    
-                        t = Geom::Transformation.scaling bas , scale , 1 , 1
-                    
+
+                        t = Geom::Transformation.scaling scale , 1 , 1
+
                     elsif res[0] == "Scaling in GREEN"
-                    
-                        t = Geom::Transformation.scaling bas , 1 , scale , 1
-                    
+
+                        t = Geom::Transformation.scaling 1 , scale , 1
+
                     elsif res[0] == "Scaling in BLUE"
-                    
-                        t = Geom::Transformation.scaling bas , 1 , 1 , scale                    
-                    
+
+                        t = Geom::Transformation.scaling 1 , 1 , scale                    
+
                     elsif res[0] == "Rotation about RED"
-                    
-                        t = Geom::Transformation.rotation bas , [ 1 , 0 , 0 ] , ( scale ).degrees
-                    
+
+                        t = Geom::Transformation.rotation [ 0 , 0 , 0 ] , [ 1 , 0 , 0 ] , ( scale ).degrees
+
                     elsif res[0] == "Rotation about GREEN"
-                    
-                        t = Geom::Transformation.rotation bas , [ 0 , 1 , 0 ] , ( scale ).degrees
-                    
+
+                        t = Geom::Transformation.rotation [ 0 , 0 , 0 ] , [ 0 , 1 , 0 ] , ( scale ).degrees
+
                     elsif res[0] == "Rotation about BLUE"
-                    
-                        t = Geom::Transformation.rotation bas , [ 0 , 0 , 1 ] , ( scale ).degrees
-                        
+
+                        t = Geom::Transformation.rotation [ 0 , 0 , 0 ] , [ 0 , 0 , 1 ] , ( scale ).degrees
+
                     elsif res[0] == "Motion in RED"
-                    
+
                         t = Geom::Transformation.translation [ scale , 0 , 0 ]
-                        
+
                     elsif res[0] == "Motion in GREEN"
-                    
+
                         t = Geom::Transformation.translation [ 0 , scale , 0 ]
-                        
+
                     elsif res[0] == "Motion in BLUE"
-                    
+
                         t = Geom::Transformation.translation [ 0 , 0 , scale ]                        
-                    
+
                     else
-                    
+
                         # Uniform scaling as default
-                        t = Geom::Transformation.scaling bas , scale
-                    
+                        t = Geom::Transformation.scaling scale
+
                     end
 
                     # Apply the transformation
-                    e.transform! ( t )
+                    e.transformation *= t                    
                     
                     # Life is always better with some feedback while SketchUp works
                     Sketchup.status_text = toolname + " | Done with object #{(i+1).to_s}"
@@ -777,7 +775,7 @@ module AS_Extensions
         if !all_objects.empty?
         
             # Get all the parameters from input dialog
-            prompts = [ "Transformation to apply " ,
+            prompts = [ "Transformation to apply (object coords) " ,
                         "Use " ,
                         "Amplitude in RED (x) (A in f = A*sin(Bx)+D) " , 
                         "Period in RED (x) (B in f = A*sin(Bx)+D) " ,
@@ -785,7 +783,7 @@ module AS_Extensions
                         "Period in GREEN (y) (B in f = A*sin(By)+D) " ,
                         "Amplitude in BLUE (z) (A in f = A*sin(Bz)+D) " , 
                         "Period in BLUE (z) (B in f = A*sin(Bz)+D) " ,
-                        "Offset (D) " ]
+                        "Offset (D) (all in local coords) " ]
             defaults = [ "Uniform Scaling" , "Sine" , "1" , "1" , "1" , "1" , "0" , "0" , "0" ]
             lists = [ "Uniform Scaling|Scaling in RED|Scaling in GREEN|Scaling in BLUE|Rotation about RED|Rotation about GREEN|Rotation about BLUE|Motion in RED|Motion in GREEN|Motion in BLUE" , "Sine|Cosine" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" ]
             defaults = Sketchup.read_default( @exttitle , toolname , defaults )
@@ -817,11 +815,10 @@ module AS_Extensions
                 gr.entities.each_with_index { |e,i|
                 
                     # Get base of object
-                    cen = e.bounds.center
                     if e.is_a? Sketchup::ComponentInstance
-                        bas = e.transformation.origin
+                        cen = e.transformation.origin
                     else
-                        bas = e.bounds.center
+                        cen = e.bounds.center
                     end
                     
                     # Get combined scale
@@ -843,51 +840,52 @@ module AS_Extensions
                     
                     end
                     
+                    # Get transformation                             
                     if res[0] == "Scaling in RED"
-                    
-                        t = Geom::Transformation.scaling bas , scale , 1 , 1
-                    
+
+                        t = Geom::Transformation.scaling scale , 1 , 1
+
                     elsif res[0] == "Scaling in GREEN"
-                    
-                        t = Geom::Transformation.scaling bas , 1 , scale , 1
-                    
+
+                        t = Geom::Transformation.scaling 1 , scale , 1
+
                     elsif res[0] == "Scaling in BLUE"
-                    
-                        t = Geom::Transformation.scaling bas , 1 , 1 , scale                    
-                    
+
+                        t = Geom::Transformation.scaling 1 , 1 , scale                    
+
                     elsif res[0] == "Rotation about RED"
-                    
-                        t = Geom::Transformation.rotation bas , [ 1 , 0 , 0 ] , ( scale ).degrees
-                    
+
+                        t = Geom::Transformation.rotation [ 0 , 0 , 0 ] , [ 1 , 0 , 0 ] , ( scale ).degrees
+
                     elsif res[0] == "Rotation about GREEN"
-                    
-                        t = Geom::Transformation.rotation bas , [ 0 , 1 , 0 ] , ( scale ).degrees
-                    
+
+                        t = Geom::Transformation.rotation [ 0 , 0 , 0 ] , [ 0 , 1 , 0 ] , ( scale ).degrees
+
                     elsif res[0] == "Rotation about BLUE"
-                    
-                        t = Geom::Transformation.rotation bas , [ 0 , 0 , 1 ] , ( scale ).degrees
-                        
+
+                        t = Geom::Transformation.rotation [ 0 , 0 , 0 ] , [ 0 , 0 , 1 ] , ( scale ).degrees
+
                     elsif res[0] == "Motion in RED"
-                    
+
                         t = Geom::Transformation.translation [ scale , 0 , 0 ]
-                        
+
                     elsif res[0] == "Motion in GREEN"
-                    
+
                         t = Geom::Transformation.translation [ 0 , scale , 0 ]
-                        
+
                     elsif res[0] == "Motion in BLUE"
-                    
-                        t = Geom::Transformation.translation [ 0 , 0 , scale ]                           
-                    
+
+                        t = Geom::Transformation.translation [ 0 , 0 , scale ]                        
+
                     else
-                    
+
                         # Uniform scaling as default
-                        t = Geom::Transformation.scaling bas , scale
-                    
+                        t = Geom::Transformation.scaling scale
+
                     end
 
                     # Apply the transformation
-                    e.transform! ( t )
+                    e.transformation *= t
                     
                     # Life is always better with some feedback while SketchUp works
                     Sketchup.status_text = toolname + " | Done with object #{(i+1).to_s}"
