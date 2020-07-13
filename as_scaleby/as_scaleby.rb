@@ -59,12 +59,12 @@ module AS_Extensions
             defaults = [ "Uniform Scaling" , "RED-GREEN (x-y)" , "2" ]
             lists = [ "Uniform Scaling|Scaling in RED|Scaling in GREEN|Scaling in BLUE|Rotation about RED|Rotation about GREEN|Rotation about BLUE|Motion in RED|Motion in GREEN|Motion in BLUE" , 
                       "RED-GREEN (x-y)|RED-BLUE (x-z)|GREEN-BLUE (y-z)" , "" ]
-            defaults = Sketchup.read_default( @exttitle , toolname , defaults )
+            defaults = Sketchup.read_default( @extname , __method__.to_s , defaults )
             
             res = UI.inputbox( prompts , defaults , lists , toolname )
             return if !res
             
-            Sketchup.write_default( @exttitle , toolname , res )
+            Sketchup.write_default( @extname , __method__.to_s , res.map { |s| s.gsub( '"' , '' ) } )  # Fix for inch pref saving error
             
             mod.start_operation toolname
             
@@ -230,12 +230,12 @@ module AS_Extensions
             defaults = [ "Uniform Scaling" , "10'" , "Linear" , "Decrease" , "2" ]
             lists = [ "Uniform Scaling|Scaling in RED|Scaling in GREEN|Scaling in BLUE|Rotation about RED|Rotation about GREEN|Rotation about BLUE|Motion in RED|Motion in GREEN|Motion in BLUE" , 
                       "" , "Root|Linear|Square" , "Decrease|Increase" , "" ]
-            defaults = Sketchup.read_default( @exttitle , toolname , defaults )
+            defaults = Sketchup.read_default( @extname , __method__.to_s , defaults )
             
             res = UI.inputbox( prompts , defaults , lists , toolname )
             return if !res
             
-            Sketchup.write_default( @exttitle , toolname , res )
+            Sketchup.write_default( @extname , __method__.to_s , res.map { |s| s.gsub( '"' , '' ) } )  # Fix for inch pref saving error
             
             mod.start_operation toolname
             
@@ -393,12 +393,12 @@ module AS_Extensions
                         "Image Orientation (local coords) " ]
             defaults = [ "0" , "1'" , "Yes" , "RED-GREEN (x-y)" ]
             lists = [ "" , "" , "Yes|No" , "RED-GREEN (x-y)|RED-BLUE (x-z)|GREEN-BLUE (y-z)" ]
-            defaults = Sketchup.read_default( @exttitle , toolname , defaults )
+            defaults = Sketchup.read_default( @extname , __method__.to_s , defaults )
             
             res = UI.inputbox( prompts , defaults , lists , toolname )
             return if !res
             
-            Sketchup.write_default( @exttitle , toolname , res )
+            Sketchup.write_default( @extname , __method__.to_s , res.map { |s| s.gsub( '"' , '' ) } )  # Fix for inch pref saving error
             
             mod.start_operation toolname
             
@@ -511,12 +511,12 @@ module AS_Extensions
                         "Image Orientation (all in local coords) " ]
             defaults = [ "0" , "0" , "1'" , "RED-GREEN (x-y)" ]
             lists = [ "" , "" , "" , "RED-GREEN (x-y)|RED-BLUE (x-z)|GREEN-BLUE (y-z)" ]
-            defaults = Sketchup.read_default( @exttitle , toolname , defaults )
+            defaults = Sketchup.read_default( @extname , __method__.to_s , defaults )
             
             res = UI.inputbox( prompts , defaults , lists , toolname )
             return if !res
             
-            Sketchup.write_default( @exttitle , toolname , res )
+            Sketchup.write_default( @extname , __method__.to_s , res.map { |s| s.gsub( '"' , '' ) } )  # Fix for inch pref saving error
             
             mod.start_operation toolname
             
@@ -638,12 +638,12 @@ module AS_Extensions
                         "Offset (D) (all in local coords) " ]
             defaults = [ "Uniform Scaling" , "1" , "2" , "2" , "1" , "2" , "2" , "0" , "0" , "0" , "0" ]
             lists = [ "Uniform Scaling|Scaling in RED|Scaling in GREEN|Scaling in BLUE|Rotation about RED|Rotation about GREEN|Rotation about BLUE|Motion in RED|Motion in GREEN|Motion in BLUE" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" ]
-            defaults = Sketchup.read_default( @exttitle , toolname , defaults )
+            defaults = Sketchup.read_default( @extname , __method__.to_s , defaults )
             
             res = UI.inputbox( prompts , defaults , lists , toolname )
             return if !res
             
-            Sketchup.write_default( @exttitle , toolname , res )
+            Sketchup.write_default( @extname , __method__.to_s , res.map { |s| s.gsub( '"' , '' ) } )  # Fix for inch pref saving error
             
             mod.start_operation toolname
             
@@ -786,12 +786,12 @@ module AS_Extensions
                         "Offset (D) (all in local coords) " ]
             defaults = [ "Uniform Scaling" , "Sine" , "1" , "1" , "1" , "1" , "0" , "0" , "0" ]
             lists = [ "Uniform Scaling|Scaling in RED|Scaling in GREEN|Scaling in BLUE|Rotation about RED|Rotation about GREEN|Rotation about BLUE|Motion in RED|Motion in GREEN|Motion in BLUE" , "Sine|Cosine" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" ]
-            defaults = Sketchup.read_default( @exttitle , toolname , defaults )
+            defaults = Sketchup.read_default( @extname , __method__.to_s , defaults )
             
             res = UI.inputbox( prompts , defaults , lists , toolname )
             return if !res
             
-            Sketchup.write_default( @exttitle , toolname , res )
+            Sketchup.write_default( @extname , __method__.to_s , res.map { |s| s.gsub( '"' , '' ) } )  # Fix for inch pref saving error
             
             mod.start_operation toolname
             
